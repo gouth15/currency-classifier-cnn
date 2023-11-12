@@ -27,13 +27,9 @@ if capture_image is not None:
     st.write(cvImage.shape)
 
     pil_image = Image.fromarray(cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB))
-
     resized_image = pil_image.resize((150, 150))
-
     st.image(resized_image, caption="Resized Image", use_column_width=True)
-
     resized_image_array = np.array(resized_image)
-
     input_image = np.expand_dims(resized_image_array, axis=0)
 
     predictions = model.predict(input_image)
