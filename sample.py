@@ -1,54 +1,113 @@
-import streamlit as st
+# from tensorflow.keras.models import load_model
+# from tensorflow.keras.preprocessing import image
+# import numpy as np
+# import cv2
+# from PIL import Image
+# from gtts import gTTS
+# import os
+# import pygame
+
+# model = load_model("new_cnn_model.h5")
+
+# def predict_currency(image_np):
+
+#     # Resize the image to the expected input size of the model
+#     image_np = cv2.resize(image_np, (150, 150))
+    
+#     image_np = np.array(image_np)
+#     image_np = np.expand_dims(image_np, axis=0)
+
+#     predictions = model.predict(image_np)
+#     predicted_class_index = np.argmax(predictions)
+
+#     class_labels = ["10", "100", "20", "200", "2000", "50", "500"]
+
+#     predicted_class = class_labels[predicted_class_index]
+#     probability = predictions[0][predicted_class_index]
+
+#     return predicted_class, probability
+
+# def capture_and_recognize():
+#     cap = cv2.VideoCapture(0)
+#     cv2.namedWindow("Live Feed", cv2.WINDOW_NORMAL)
+
+#     pygame.mixer.init()  # Initialize the pygame mixer
+#     pygame.mixer.music.set_volume(1.0)
+
+#     while True:
+#         ret, frame = cap.read()
+#         cv2.imshow("Live Feed", frame)
+
+#         key = cv2.waitKey(1) & 0xFF
+#         if key == ord(' '):  # Press spacebar to capture frame
+#             image_path = "captured_frame.jpg"
+#             cv2.imwrite(image_path, frame)
+#             print("Image Captured.")
+
+#             predicted_class, probability = predict_currency(frame)
+#             print(f"Predicted Class: {predicted_class}")
+#             print(f"Probability: {probability}")
+
+#             text = f"Currency Detected is {predicted_class} Rupees"
+#             tts = gTTS(text, lang='en')
+
+#             audio_path = "output_audio.mp3"
+#             tts.save(audio_path)
+
+#             pygame.mixer.music.load(audio_path)
+#             pygame.mixer.music.play()
+
+#         elif key == 27:  # Press 'Esc' to exit
+#             break
+
+#     cap.release()
+#     cv2.destroyAllWindows()
+#     pygame.mixer.quit()
+
+# if __name__ == "__main__":
+#     capture_and_recognize()
+
+
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import numpy as np
 import cv2
 from PIL import Image
-from gtts import gTTS
-from pydub import AudioSegment
-import io
+import streamlit as st 
 
 model = load_model("new_cnn_model.h5")
 
-def predict_currency(image):
+capture_image = st.camera_input(label="Capture Currency")
 
-    pil_image = Image.open(image)
-    image_np = np.array(pil_image).astype(np.uint8)
+if capture_image is not None:
+    bytes_data = capture_image.read()
 
-    gray = cv2.cvtColor(image_np, cv2.COLOR_BGR2GRAY)
-    contours, _ = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    x, y, w, h = cv2.boundingRect(contours[0])
+    nparr = np.frombuffer(bytes_data, np.uint8)
+    cvImage = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    cropped_image = image_np[y:y + h, x:x + w]
-    cropped_image = cv2.resize(cropped_image, (150, 150))
-    cropped_image = np.array(cropped_image)
-    cropped_image = np.expand_dims(cropped_image, axis=0)
+    st.write(cvImage.shape)
 
-    predictions = model.predict(cropped_image)
+    # Convert captured image to PIL Image
+    pil_image = Image.fromarray(cvImage)
+
+    # Resize the image
+    resized_image = pil_image.resize((150, 150))
+
+    # Convert back to numpy array
+    resized_image_array = np.array(resized_image)
+
+    # Expand dimensions to match the model input shape
+    input_image = np.expand_dims(resized_image_array, axis=0)
+
+    # Make predictions
+    predictions = model.predict(input_image)
     predicted_class_index = np.argmax(predictions)
 
-    class_labels = ["10", "100", "20", "200", "2000", "50", "500"]
+    class_labels = ['10', '100', '20', '200', '2000', '50', '500']
 
     predicted_class = class_labels[predicted_class_index]
     probability = predictions[0][predicted_class_index]
 
-    return predicted_class, probability
+    st.write(f'Predicted Class: {predicted_class}')
+    st.write(f'Probability: {probability}')
 
-st.title("Currency Recognition System")
-
-uploaded_file = st.file_uploader("Choose a currency image...", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-
-    st.image(uploaded_file, caption="Uploaded Image.", use_column_width=True)
-
-    predicted_class, probability = predict_currency(uploaded_file)
-
-    st.write(f"Predicted Class: {predicted_class}")
-    st.write(f"Probability: {probability}")
-
-    text = f"Currency Detected is {predicted_class} Rupees"
-    tts = gTTS(text)
-    audio_data = io.BytesIO()
-    tts.write_to_fp(audio_data)  # Use write_to_fp method instead of save
-    st.audio(audio_data.getvalue(), format="audio/mp3", start_time=0)
