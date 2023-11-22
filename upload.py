@@ -9,7 +9,7 @@ from pydub import AudioSegment
 import io
 import base64
 
-model = load_model("new_cnn_model.h5")
+model = load_model("model\cnn_model2.h5")
 
 def predict_currency(image):
 
